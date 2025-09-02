@@ -1,23 +1,20 @@
 <head>
   <style> body { margin: 0; } </style>
 
-  <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
-  <!-- <script src="../../dist/globe.gl.js"></script> -->
+  <script src="./globe.gl"></script>
 </head>
 
 <body>
   <div id="globeViz"></div>
 
   <script type="module">
-    import { scaleSequentialSqrt } from 'https://esm.sh/d3-scale';
-    import { interpolateYlOrRd } from 'https://esm.sh/d3-scale-chromatic';
 
-	// Convert UTC offset string (e.g. "+05:30") to minutes
+    // Convert UTC offset string (e.g. "UTC+05:30") to minutes
     function parseOffset(offsetStr) {
       if (!offsetStr) return 0;
       const sign = offsetStr.startsWith('UTC-') ? -1 : 1;
-	  const stringre = offsetStr.replace('UTC', '').replace(/[+-]/, '').split(':');
-      const [hours, minutes = "0"] = stringre;
+      const parts = offsetStr.replace('UTC', '').replace(/[+-]/, '').split(':');
+      const [hours, minutes = "0"] = parts;
       return sign * (parseInt(hours, 10) * 60 + parseInt(minutes, 10));
     }
 
@@ -30,29 +27,32 @@
       return localTime.toTimeString().split(' ')[0]; // HH:MM:SS
     }
 
-    fetch('./timezones_am.json').then(res => res.json()).then(countries =>
-    {
-	  console.log(countries.features);
+    fetch('./timezones_am.json').then(res => res.json()).then(countries => {
+      let hoveredId = null;
 
       const world = new Globe(document.getElementById('globeViz'))
-        .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
-        .backgroundImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
+        .globeImageUrl('./earth-night.jpg')
+        .backgroundImageUrl('./night-sky.png')
         .lineHoverPrecision(0)
         .polygonsData(countries.features)
-        .polygonAltitude(0.06)
-        .polygonCapColor('red')
-        .polygonSideColor(() => 'rgba(0, 100, 0, 0.15)')
-        .polygonStrokeColor(() => '#111')
+        .polygonAltitude(d =>
+          hoveredId && d.properties.id === hoveredId ? 0.12 : 0.06
+        )
+        .polygonCapColor(d =>
+          hoveredId && d.properties.id === hoveredId ? '#ffffff' : '#666666'
+        )
+        .polygonSideColor(() => 'rgba(0,0,0,0.3)')
+        .polygonStrokeColor(() => '#222')
         .polygonLabel(({ properties: d }) => {
-		  const offset = d.id;
-		  const time = getLocalTimeFromOffset(offset);
+          const offset = d.id;
+          const time = getLocalTimeFromOffset(offset);
           return `<b>${offset}</b><br/>🕒 ${time}`;
         })
-        .onPolygonHover(hoverD => world
-          .polygonAltitude(d => d === hoverD ? 0.12 : 0.06)
-          .polygonCapColor(d => d === hoverD ? 'steelblue' : 'red')
-        )
-        .polygonsTransitionDuration(300);
+        .onPolygonHover(d => {
+          hoveredId = d ? d.properties.id : null;
+          world.polygonsData(world.polygonsData()); // refresh
+        })
+        .polygonsTransitionDuration(200);
     });
   </script>
 </body>
