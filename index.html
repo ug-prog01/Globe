@@ -30,7 +30,7 @@
       return localTime.toTimeString().split(' ')[0]; // HH:MM:SS
     }
 
-    fetch('./am_data.json').then(res => res.json()).then(countries =>
+    fetch('./timezones_am.json').then(res => res.json()).then(countries =>
     {
 	  console.log(countries.features);
 
